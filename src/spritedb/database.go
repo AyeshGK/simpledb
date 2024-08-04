@@ -2,6 +2,7 @@ package spritedb
 
 import (
 	"fmt"
+	"os"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -30,11 +31,27 @@ func NewDB(opts ...OptFunc) (*DB, error) {
 		return nil, err
 	}
 
+	if err := db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("collection-meta"))
+		return err
+	}); err != nil {
+		return nil, err
+	}
+
 	return &DB{
 		currentDatabase: opt.DBName,
 		db:              db,
 		Options:         opt, // Pass the dereferenced Options struct
 	}, nil
+}
+
+// DropDatabase removes the database file associated with the current database.
+//
+// It returns an error if there was a problem deleting the file.
+func (db *DB) DropDatabase() error {
+	dbName := fmt.Sprintf("%s.db", db.DBName)
+	db.Close()
+	return os.Remove(dbName)
 }
 
 func (db *DB) Close() {

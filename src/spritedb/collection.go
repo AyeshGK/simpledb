@@ -23,5 +23,22 @@ func (db *DB) CreateCollection(name string) (*Collection, error) {
 		return nil, err
 	}
 
+	_, err = db.CreateCollectionMeta(name)
+	if err != nil {
+		return nil, err
+	}
+
 	return collection, nil
+}
+
+func (db *DB) DropCollection(collectionName string) error {
+	err := db.db.Update(func(tx *bolt.Tx) error {
+		return tx.DeleteBucket([]byte(collectionName))
+	})
+	if err != nil {
+		return err
+	}
+	_, err = db.deleteCollectionMeta(collectionName)
+
+	return err
 }

@@ -46,6 +46,11 @@ func (qb *QueryBuilder) Take(count int) *QueryBuilder {
 	return qb
 }
 
+func (qb *QueryBuilder) DeleteDocumentById(documentId string) *QueryBuilder {
+	qb.document["id"] = documentId
+	return qb
+}
+
 func (qb *QueryBuilder) Build() *Query {
 	query := &Query{
 		db:             qb.db,

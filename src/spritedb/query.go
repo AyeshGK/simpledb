@@ -108,3 +108,57 @@ func (query *Query) UpdateDocument() (string, error) {
 
 	return query.document["id"], tx.Commit()
 }
+
+func (query *Query) DeleteDocumentById() (string, error) {
+	var documentId = query.document["id"]
+	tx, err := query.db.db.Begin(true)
+	if err != nil {
+		return "-1", nil
+	}
+	defer tx.Rollback()
+
+	bucket := tx.Bucket([]byte(query.collectionName))
+	if bucket == nil {
+		return "-1", nil
+	}
+
+	if err := bucket.Delete([]byte(documentId)); err != nil {
+		return "-1", nil
+	}
+
+	return documentId, tx.Commit()
+}
+
+func (query *Query) DeleteDocumentsByDocument() (string, error) {
+
+	tx, err := query.db.db.Begin(true)
+	if err != nil {
+		return "-1", nil
+	}
+	defer tx.Rollback()
+
+	bucket := tx.Bucket([]byte(query.collectionName))
+	if bucket == nil {
+		return "-1", nil
+	}
+
+	c := bucket.Cursor()
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		if decodedDoc, err := query.db.Decoder.Decode(v); err != nil {
+			return "-1", err
+		} else {
+			decodedDoc["id"] = string(k)
+
+			// only and works
+			if !query.applyFilters(decodedDoc) {
+				continue
+			}
+
+			if err := bucket.Delete([]byte(decodedDoc["id"])); err != nil {
+				return "-1", err
+			}
+		}
+	}
+
+	return "1", tx.Commit()
+}
